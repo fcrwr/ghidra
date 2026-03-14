@@ -1068,7 +1068,7 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 class RulePtrArith : public Rule {
-  static bool verifyPreferredPointer(PcodeOp *op,int4 slot);
+  static bool verifyPreferredPointer(PcodeOp *op,int4 slot, Funcdata &data);
 public:
   RulePtrArith(const string &g) : Rule(g, 0, "ptrarith") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
@@ -1077,7 +1077,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
-  static int4 evaluatePointerExpression(PcodeOp *op,int4 slot);
+  static int4 evaluatePointerExpression(PcodeOp *op,int4 slot, Funcdata &data);
 };
 class RuleStructOffset0 : public Rule {
 public:

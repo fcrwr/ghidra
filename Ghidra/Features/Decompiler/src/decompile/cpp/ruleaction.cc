@@ -6537,7 +6537,7 @@ void AddTreeState::buildTree(void)
 /// \param op is the given op
 /// \param slot is the input slot of the putative base pointer
 /// \return \b true if the indicated slot holds the preferred pointer
-bool RulePtrArith::verifyPreferredPointer(PcodeOp *op,int4 slot)
+bool RulePtrArith::verifyPreferredPointer(PcodeOp *op,int4 slot, Funcdata &data)
 
 {
   Varnode *vn = op->getIn(slot);
@@ -6550,7 +6550,7 @@ bool RulePtrArith::verifyPreferredPointer(PcodeOp *op,int4 slot)
     if (preOp->getIn(preslot)->getTypeReadFacing(preOp)->getMetatype() != TYPE_PTR)
       return true;
   }
-  return (1 != evaluatePointerExpression(preOp, preslot));	// Does earlier varnode look like the base pointer
+  return (1 != evaluatePointerExpression(preOp, preslot, data));	// Does earlier varnode look like the base pointer
 }
 
 /// \brief Determine if the expression rooted at the given INT_ADD operation is ready for conversion
@@ -6565,7 +6565,7 @@ bool RulePtrArith::verifyPreferredPointer(PcodeOp *op,int4 slot)
 /// \param op is the given INT_ADD
 /// \param slot is the index of the pointer
 /// \return the command code
-int4 RulePtrArith::evaluatePointerExpression(PcodeOp *op,int4 slot)
+int4 RulePtrArith::evaluatePointerExpression(PcodeOp *op,int4 slot,Funcdata &data)
 
 {
   int4 res = 1;		// Assume we are going to push
@@ -6576,6 +6576,7 @@ int4 RulePtrArith::evaluatePointerExpression(PcodeOp *op,int4 slot)
   if (op->getIn(1 - slot)->getTypeReadFacing(op)->getMetatype() == TYPE_PTR)
     res = 2;
   Varnode *outVn = op->getOut();
+  if (data.getScopeLocal()->findAddr(outVn->getAddr(), op->getAddr()) != nullptr) res = 2;
   list<PcodeOp *>::const_iterator iter;
   for(iter=outVn->beginDescend();iter!=outVn->endDescend();++iter) {
     PcodeOp *decOp = *iter;
@@ -6646,8 +6647,8 @@ int4 RulePtrArith::applyOp(PcodeOp *op,Funcdata &data)
     if (ct->getMetatype() == TYPE_PTR) break;
   }
   if (slot == op->numInput()) return 0;
-  if (evaluatePointerExpression(op, slot) != 2) return 0;
-  if (!verifyPreferredPointer(op, slot)) return 0;
+  if (evaluatePointerExpression(op, slot, data) != 2) return 0;
+  if (!verifyPreferredPointer(op, slot, data)) return 0;
 
   AddTreeState state(data,op,slot);
   if (state.apply()) return 1;
@@ -6855,7 +6856,7 @@ int4 RulePushPtr::applyOp(PcodeOp *op,Funcdata &data)
   }
   if (slot == op->numInput()) return 0;
 
-  if (RulePtrArith::evaluatePointerExpression(op, slot) != 1) return 0;
+  if (RulePtrArith::evaluatePointerExpression(op, slot, data) != 1) return 0;
   Varnode *vn = op->getOut();
   Varnode *vnadd2 = op->getIn(1-slot);
   vector<PcodeOp *> duplicateList;
